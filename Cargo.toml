@@ -1,8 +1,12 @@
 [package]
-name = "pkg"
+name = "async-chat"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+async-std = { version = "1.11.0", features = ["unstable"] }
+serde = { version = "1.0.137", features = ["derive", "rc"] }
+serde_json = "1.0.81"
+tokio = { version = "1.19.2", features = ["sync"] }
