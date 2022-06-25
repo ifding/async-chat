@@ -2,6 +2,11 @@ use async_std::prelude::*;
 use async_std::{io, net};
 use async_chat::utils::{self, ChatResult};
 
+/// The asynchronous `BufReader`'s `lines` method cannot return an iterator,
+/// so calling `command_lines.next()` will block the thread until the next 
+/// line is ready. Instead, `lines` returns a _stream_ of `Result<String>` 
+/// values. It produces a sequence of values on demand, in an async-friendly
+/// way.
 async fn send_commands(mut to_server: net::TcpStream) -> ChatResult<()> {
     println!("Commands:\n\
               join GROUP\n\
@@ -67,7 +72,9 @@ fn get_next_token(mut input: &str) -> Option<(&str, &str)> {
 
 use async_chat::FromServer;
 
+/// Receives a stream of `FromServer` values from the network and prints them out.
 async fn handle_replies(from_server: net::TcpStream) -> ChatResult<()> {
+    // Take a socket receiving data from the server and wraps a `BufReader` around it.
     let buffered = io::BufReader::new(from_server);
     let mut reply_stream = utils::receive_as_json(buffered);
 
@@ -90,15 +97,20 @@ use async_std::task;
 fn main() -> ChatResult<()> {
     let address = std::env::args().nth(1)
         .expect("Usage: client ADDRESS:PORT");
-        task::block_on(async {
-            let socket = net::TcpStream::connect(address).await?;
-            socket.set_nodelay(true)?;
-    
-            let to_server = send_commands(socket.clone());
-            let from_server = handle_replies(socket);
-    
-            from_server.race(to_server).await?;
-    
-            Ok(())
-        })
+    // wrap functions in an async block and pass the block's future to `task::block_on` to run.
+    task::block_on(async {
+        let socket = net::TcpStream::connect(address).await?;
+        socket.set_nodelay(true)?;
+
+        let to_server = send_commands(socket.clone());
+        let from_server = handle_replies(socket);
+
+        // Return a new future that polls both `to_server` and `from_server` and returns
+        // `Poll::Ready(v)` as soon as either of them is ready. Both futures must have the 
+        // same output type: the final value that of whichever future finished first. The 
+        // uncompleted future is dropped.
+        from_server.race(to_server).await?;
+
+        Ok(())
+    })
 }

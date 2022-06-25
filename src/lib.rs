@@ -3,9 +3,9 @@ use std::sync::Arc;
 
 pub mod utils;
 
-// Using a referene-counted Arc<String> instead of a plain String helps
-// the server avoid making copies of strings as it manages groups and 
-// distributes messages.
+/// Using a referene-counted Arc<String> instead of a plain String helps
+/// the server avoid making copies of strings as it manages groups and 
+/// distributes messages.
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum FromClient {
     Join { group_name: Arc<String> },
@@ -15,7 +15,9 @@ pub enum FromClient {
     },
 }
 
-
+/// `Serialize` and `Deserialize` let us call `serde_json::to_string` to convert
+/// them into JSON values, send them across the network, and `serde_json::from_str` 
+/// to convert them back into their Rust forms.
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum FromServer {
     Message { 
